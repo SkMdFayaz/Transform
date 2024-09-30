@@ -64,19 +64,82 @@ class DataTemplateListCreateAPIView(APIView):
 
     def post(self, request):
         """
+        HTTP Method: POST
 
+        Purpose:
+            Create a new Data Template in the database.
+            Accepts data for creating a new template, including its associated field mappings.
+            Each mapping specifies how fields from the source structure should be transformed to the destination structure.
+
+        Input:
+            A JSON request body with the following structure:
+            {
+                "name": "Template Name",
+                "mappings": [
+                    {
+                        "source_field": 1,  # The ID of the source field
+                        "destination_field": 2  # The ID of the destination field
+                    }
+                ]
+            }
+
+        Returns:
+            - 201 Created: A JSON response containing the newly created data template and its associated mappings.
+            - 400 Bad Request: A JSON response with an error message if the input data is invalid or if something goes wrong.
+
+        Example Request Body:
+        {
+            "name": "Candidate Mapping",
+            "mappings": [
+                {
+                    "source_field": 1,
+                    "destination_field": 2
+                }
+                
+            ]
+        }
+
+        Example Response on Success (201 Created):
+        {
+            "id": 2,
+            "name": "Candidate Template 2",
+            "mappings": [
+                {
+                    "source_field": 1,
+                    "destination_field": 1
+                }
+            ]
+        }
+
+        Example Response on Error (400 Bad Request):
+        {
+            "data": "Field with ID 999 does not exist",
+            "message": "Something Went Wrong"
+        }
         """
         try:
+            # Attempt to deserialize the input data and create a new DataTemplate
             serializer = DataTemplateSerializer(data=request.data)
+            
+            # Check if the provided data is valid according to the serializer
             if serializer.is_valid():
+                # If valid, save the new template and return the data
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
+            
+            # If validation fails, return the errors with a 400 status
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
         except Exception as e:
-            return Response ({"data": str(e),
-                             "message": "Something Went Wrong",
-                             },
-                            status=status.HTTP_400_BAD_REQUEST)
+            # Handle any unexpected exceptions that might occur
+            return Response(
+                {
+                    "data": str(e),
+                    "message": "Something Went Wrong",
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
 
 class DataTemplateRetrieveUpdateAPIView(APIView):
     """
@@ -99,12 +162,24 @@ class DataTemplateRetrieveUpdateAPIView(APIView):
             
         Returns:
             - 200 OK: JSON response containing the template data if it exists.
-            - 404 Not Found: If the DataTemplate is not found.
+            - 400 Bad Request: If the provided data is invalid or any mapping does not exist.
+
+        Example Response:
+            {
+                "id": 1,
+                "name": "Candidate Template",
+                "mappings": [
+                    {
+                        "source_field": 1,
+                        "destination_field": 1
+                    }
+                ]
+            }
         """
         try:
             template = DataTemplate.objects.get(pk=pk)
         except DataTemplate.DoesNotExist:
-            return Response({"data":None,"message": "Template not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"data":None,"message": "Template not found"}, status=status.HTTP_400_BAD_REQUEST)
         serializer = DataTemplateSerializer(template)
         return Response(serializer.data)
 
@@ -122,12 +197,23 @@ class DataTemplateRetrieveUpdateAPIView(APIView):
         Returns:
             - 200 OK: If the DataTemplate and mappings are successfully updated.
             - 400 Bad Request: If the provided data is invalid or any mapping does not exist.
-            - 404 Not Found: If the DataTemplate is not found.
+
+        Request Body:
+            {
+                "name": "Candidate Template 37",
+                "mappings": [
+                    {
+                        "source_field": 2,
+                        "destination_field": 2
+                    }
+                ]
+            }
+            
         """
         try:
             template = DataTemplate.objects.get(pk=pk)
         except DataTemplate.DoesNotExist:
-            return Response({"data": None, "message": "Template not found"}, status=status.HTTP_404_NOT_FOUND)
+            return Response({"data": None, "message": "Template not found"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Pass the data to the serializer for validation and update
         serializer = DataTemplateSerializer(template, data=request.data)
